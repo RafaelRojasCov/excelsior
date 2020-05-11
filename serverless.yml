@@ -6,6 +6,17 @@ provider:
   name: aws
   runtime: nodejs12.x
 
+plugins:
+  - serverless-webpack
+
+package:
+  individually: true
+
 functions:
   hello:
     handler: handler.hello
+
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
