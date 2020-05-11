@@ -1,16 +1,31 @@
 "use strict";
 
+import { getPolicy, calculateTotalPolicyCost } from "./functions";
+
 export const hello = async (event) => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify(
+  const { data, error } = await getPolicy();
+
+  if (error !== null) {
+    return JSON.stringify(
       {
-        message: "Go Serverless v1.0! Your function executed successfully!",
-        input: event,
-        url: URLS.bice,
+        status: 400,
+        message: "ERROR",
+        error,
       },
       null,
       2
-    ),
-  };
+    );
+  } else {
+    return JSON.stringify(
+      {
+        status: 200,
+        message: "OK",
+        data: {
+          totalPolicyCost: calculateTotalPolicyCost(data),
+        },
+      },
+      null,
+      2
+    );
+  }
 };

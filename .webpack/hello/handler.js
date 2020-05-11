@@ -86,6 +86,58 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./functions/index.js":
+/*!****************************!*\
+  !*** ./functions/index.js ***!
+  \****************************/
+/*! exports provided: getPolicy, calculateTotalPolicyCost */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getPolicy", function() { return getPolicy; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "calculateTotalPolicyCost", function() { return calculateTotalPolicyCost; });
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "source-map-support/register");
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../utils */ "./utils/index.js");
+/* harmony import */ var bignumber_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! bignumber.js */ "bignumber.js");
+/* harmony import */ var bignumber_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(bignumber_js__WEBPACK_IMPORTED_MODULE_2__);
+
+
+
+const getPolicy = async () => {
+  const {
+    bicePolicy
+  } = _utils__WEBPACK_IMPORTED_MODULE_1__["urls"];
+  return fetch(bicePolicy).then(res => res.json()).then(data => ({
+    data: data.policy,
+    error: null
+  })).catch(error => ({
+    data: null,
+    error
+  }));
+};
+const calculateTotalPolicyCost = ({
+  workers,
+  has_dental_care,
+  company_percentage
+}) => {
+  const {
+    calculateTotalHealthCost,
+    calculateTotalDentalCost
+  } = _utils__WEBPACK_IMPORTED_MODULE_1__["costs"];
+  let totalDentalCost = new bignumber_js__WEBPACK_IMPORTED_MODULE_2___default.a(0);
+  const totalHealthCost = calculateTotalHealthCost(workers);
+
+  if (has_dental_care) {
+    totalDentalCost = calculateTotalDentalCost(workers);
+  }
+
+  return totalHealthCost.plus(totalDentalCost).multipliedBy(company_percentage).dividedBy(100).toFixed(4);
+};
+
+/***/ }),
+
 /***/ "./handler.js":
 /*!********************!*\
   !*** ./handler.js ***!
@@ -98,21 +150,134 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "hello", function() { return hello; });
 /* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "source-map-support/register");
 /* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _utils_urls__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./utils/urls */ "./utils/urls.js");
+/* harmony import */ var _functions__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./functions */ "./functions/index.js");
 
 
 
 
 const hello = async event => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: "Go Serverless v1.0! Your function executed successfully!",
-      input: event,
-      url: _utils_urls__WEBPACK_IMPORTED_MODULE_1__["URLS"].bice
-    }, null, 2)
-  };
+  const {
+    data,
+    error
+  } = await Object(_functions__WEBPACK_IMPORTED_MODULE_1__["getPolicy"])();
+
+  if (error !== null) {
+    return JSON.stringify({
+      status: 400,
+      message: "ERROR",
+      error
+    }, null, 2);
+  } else {
+    return JSON.stringify({
+      status: 200,
+      message: "OK",
+      data: {
+        totalPolicyCost: Object(_functions__WEBPACK_IMPORTED_MODULE_1__["calculateTotalPolicyCost"])(data)
+      }
+    }, null, 2);
+  }
 };
+
+/***/ }),
+
+/***/ "./utils/costs.js":
+/*!************************!*\
+  !*** ./utils/costs.js ***!
+  \************************/
+/*! exports provided: calculateTotalHealthCost, calculateTotalDentalCost, default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "calculateTotalHealthCost", function() { return calculateTotalHealthCost; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "calculateTotalDentalCost", function() { return calculateTotalDentalCost; });
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "source-map-support/register");
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var bignumber_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! bignumber.js */ "bignumber.js");
+/* harmony import */ var bignumber_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(bignumber_js__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _validations__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./validations */ "./utils/validations.js");
+
+
+
+
+const healthCostPerChild = ({
+  childs
+}) => {
+  if (childs === 0) {
+    return 0.279;
+  }
+
+  if (childs === 1) {
+    return 0.4396;
+  } // if none of above, then we can assume that the worker has more than 2 childs.
+
+
+  return 0.5599;
+};
+
+const dentalCostPerChild = ({
+  childs
+}) => {
+  if (childs === 0) {
+    return 0.12;
+  }
+
+  if (childs === 1) {
+    return 0.195;
+  } // if none of above, then we can assume that the worker has more than 2 childs.
+
+
+  return 0.248;
+};
+
+const calculateTotalHealthCost = workers => workers.reduce((totalCost, worker) => {
+  if (Object(_validations__WEBPACK_IMPORTED_MODULE_2__["hasCoverageByAge"])(worker)) {
+    return totalCost.plus(healthCostPerChild(worker));
+  } else {
+    return totalCost;
+  }
+}, new bignumber_js__WEBPACK_IMPORTED_MODULE_1___default.a(0));
+const calculateTotalDentalCost = workers => workers.reduce((totalCost, worker) => {
+  if (Object(_validations__WEBPACK_IMPORTED_MODULE_2__["hasCoverageByAge"])(worker)) {
+    return totalCost.plus(dentalCostPerChild(worker));
+  } else {
+    return totalCost;
+  }
+}, new bignumber_js__WEBPACK_IMPORTED_MODULE_1___default.a(0));
+/* harmony default export */ __webpack_exports__["default"] = ({
+  healthCostPerChild,
+  dentalCostPerChild,
+  calculateTotalHealthCost,
+  calculateTotalDentalCost
+});
+
+/***/ }),
+
+/***/ "./utils/index.js":
+/*!************************!*\
+  !*** ./utils/index.js ***!
+  \************************/
+/*! exports provided: urls, costs, validations */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "source-map-support/register");
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _urls__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./urls */ "./utils/urls.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "urls", function() { return _urls__WEBPACK_IMPORTED_MODULE_1__["default"]; });
+
+/* harmony import */ var _costs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./costs */ "./utils/costs.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "costs", function() { return _costs__WEBPACK_IMPORTED_MODULE_2__["default"]; });
+
+/* harmony import */ var _validations__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./validations */ "./utils/validations.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "validations", function() { return _validations__WEBPACK_IMPORTED_MODULE_3__["default"]; });
+
+
+
+
+
+
 
 /***/ }),
 
@@ -120,18 +285,53 @@ const hello = async event => {
 /*!***********************!*\
   !*** ./utils/urls.js ***!
   \***********************/
-/*! exports provided: URLS */
+/*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "URLS", function() { return URLS; });
 /* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "source-map-support/register");
 /* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
 
-const URLS = {
-  bice: "https://dn8mlk7hdujby.cloudfront.net/interview/insurance/policy"
-};
+/* harmony default export */ __webpack_exports__["default"] = ({
+  bicePolicy: "https://dn8mlk7hdujby.cloudfront.net/interview/insurance/policy"
+});
+
+/***/ }),
+
+/***/ "./utils/validations.js":
+/*!******************************!*\
+  !*** ./utils/validations.js ***!
+  \******************************/
+/*! exports provided: hasCoverageByAge, default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "hasCoverageByAge", function() { return hasCoverageByAge; });
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "source-map-support/register");
+/* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
+
+// Constants
+const MAX_AGE_LIMIT_COVERAGE = 65; // validations
+
+const hasCoverageByAge = ({
+  age
+}) => age < MAX_AGE_LIMIT_COVERAGE;
+/* harmony default export */ __webpack_exports__["default"] = ({
+  hasCoverageByAge
+});
+
+/***/ }),
+
+/***/ "bignumber.js":
+/*!*******************************!*\
+  !*** external "bignumber.js" ***!
+  \*******************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("bignumber.js");
 
 /***/ }),
 
