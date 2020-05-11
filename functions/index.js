@@ -18,8 +18,6 @@ export const calculateTotalPolicyCost = ({
   const { calculateTotalHealthCost, calculateTotalDentalCost } = Utils.costs;
   let totalDentalCost = new BigNumber(0);
 
-  console.log(workers);
-
   const totalHealthCost = calculateTotalHealthCost(workers);
 
   if (has_dental_care) {
