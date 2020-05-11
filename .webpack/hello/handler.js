@@ -90,13 +90,14 @@
 /*!****************************!*\
   !*** ./functions/index.js ***!
   \****************************/
-/*! exports provided: getPolicy, calculateTotalPolicyCost */
+/*! exports provided: getPolicy, calculateTotalPolicyCost, calculateCopaymentWorkers */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getPolicy", function() { return getPolicy; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "calculateTotalPolicyCost", function() { return calculateTotalPolicyCost; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "calculateCopaymentWorkers", function() { return calculateCopaymentWorkers; });
 /* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! source-map-support/register */ "source-map-support/register");
 /* harmony import */ var source_map_support_register__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(source_map_support_register__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../utils */ "./utils/index.js");
@@ -127,13 +128,54 @@ const calculateTotalPolicyCost = ({
     calculateTotalDentalCost
   } = _utils__WEBPACK_IMPORTED_MODULE_1__["costs"];
   let totalDentalCost = new bignumber_js__WEBPACK_IMPORTED_MODULE_2___default.a(0);
+  console.log(workers);
   const totalHealthCost = calculateTotalHealthCost(workers);
 
   if (has_dental_care) {
     totalDentalCost = calculateTotalDentalCost(workers);
-  }
+  } //return the total cost for the company
+
 
   return totalHealthCost.plus(totalDentalCost).multipliedBy(company_percentage).dividedBy(100).toFixed(4);
+};
+const calculateCopaymentWorkers = ({
+  workers,
+  has_dental_care,
+  company_percentage
+}) => {
+  const {
+    healthCostPerChild,
+    dentalCostPerChild
+  } = _utils__WEBPACK_IMPORTED_MODULE_1__["costs"];
+  const {
+    hasCoverageByAge
+  } = _utils__WEBPACK_IMPORTED_MODULE_1__["validations"];
+  const maxPercentageCoverage = 100;
+  const copaymentFactor = maxPercentageCoverage - company_percentage;
+  const copayWorkers = workers.reduce((totalCopay, worker) => {
+    let dentalCopayment;
+
+    if (hasCoverageByAge(worker)) {
+      const healthCopayment = new bignumber_js__WEBPACK_IMPORTED_MODULE_2___default.a(healthCostPerChild(worker)).multipliedBy(copaymentFactor).dividedBy(maxPercentageCoverage).toFixed(4);
+
+      if (has_dental_care) {
+        dentalCopayment = new bignumber_js__WEBPACK_IMPORTED_MODULE_2___default.a(dentalCostPerChild(worker)).multipliedBy(copaymentFactor).dividedBy(maxPercentageCoverage).toFixed(4);
+      } else {
+        dentalCopayment = "not covered";
+      }
+
+      return [...totalCopay, { ...worker,
+        healthCopayment,
+        dentalCopayment
+      }];
+    } else {
+      return [...totalCopay, { ...worker,
+        healthCopayment: "not covered",
+        dentalCopayment: "not coverxed"
+      }];
+    }
+  }, []);
+  return copayWorkers;
 };
 
 /***/ }),
@@ -172,7 +214,8 @@ const hello = async event => {
       status: 200,
       message: "OK",
       data: {
-        totalPolicyCost: Object(_functions__WEBPACK_IMPORTED_MODULE_1__["calculateTotalPolicyCost"])(data)
+        totalPolicyCost: Object(_functions__WEBPACK_IMPORTED_MODULE_1__["calculateTotalPolicyCost"])(data),
+        workersPolicy: Object(_functions__WEBPACK_IMPORTED_MODULE_1__["calculateCopaymentWorkers"])(data)
       }
     }, null, 2);
   }

@@ -1,6 +1,10 @@
 "use strict";
 
-import { getPolicy, calculateTotalPolicyCost } from "./functions";
+import {
+  getPolicy,
+  calculateTotalPolicyCost,
+  calculateCopaymentWorkers,
+} from "./functions";
 
 export const hello = async (event) => {
   const { data, error } = await getPolicy();
@@ -22,6 +26,7 @@ export const hello = async (event) => {
         message: "OK",
         data: {
           totalPolicyCost: calculateTotalPolicyCost(data),
+          workersPolicy: calculateCopaymentWorkers(data),
         },
       },
       null,
