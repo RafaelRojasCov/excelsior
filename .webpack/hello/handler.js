@@ -128,7 +128,6 @@ const calculateTotalPolicyCost = ({
     calculateTotalDentalCost
   } = _utils__WEBPACK_IMPORTED_MODULE_1__["costs"];
   let totalDentalCost = new bignumber_js__WEBPACK_IMPORTED_MODULE_2___default.a(0);
-  console.log(workers);
   const totalHealthCost = calculateTotalHealthCost(workers);
 
   if (has_dental_care) {
